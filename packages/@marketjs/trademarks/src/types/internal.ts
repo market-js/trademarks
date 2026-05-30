@@ -3,9 +3,10 @@ import type {
     Spec,
     UnknownService,
     UnknownTM,
-    Supply
+    Supply,
+    ServiceSupply
 } from "#types/public"
-import type { Deps, ToSpecify } from "#types/records"
+import type { Deps, MarketPlan, ToSpecify } from "#types/records"
 import type { Merge } from "#utils"
 
 export interface TM<NAME extends string = string, TYPE = unknown> {
@@ -15,6 +16,13 @@ export interface TM<NAME extends string = string, TYPE = unknown> {
         value: VALUE
     ) => Supply<THIS>
     _type: TYPE
+    /**
+     * Opaque value attached at trademark creation by an adapter (e.g. a React
+     * Context, a Vue inject key, an AsyncLocalStorage instance). Core
+     * trademarks does not interpret this field — it just stores it for the
+     * adapter to consume.
+     */
+    _context?: unknown
 }
 
 export type Factory<
@@ -53,6 +61,7 @@ export type PartialServicePlan<
     optionals?: [...OPTIONALS]
     factory: Factory<TYPE, REQUIRED, OPTIONALS>
     warmup?: Warmup<TYPE, REQUIRED, OPTIONALS>
+    context?: unknown
 }
 
 export type ServicePlan<
@@ -64,31 +73,32 @@ export type ServicePlan<
     optionals: [...OPTIONALS]
     factory: Factory<TYPE, REQUIRED, OPTIONALS>
     warmup: Warmup<TYPE, REQUIRED, OPTIONALS>
+    context?: unknown
 }
 
 export type UnknownServicePlan = ServicePlan<unknown, OriginalTM[], Spec[]>
 
 /**
- * ctx transforms services into contextualized services that can be assembled again with new request supplies.
+ * ctx transforms services into contextualized services that can be bought again with new request supplies.
  * This enables dynamic dependency injection within a service's factory.
  * @typeParam SERVICE - The current service providing context
- * @returns A function that takes a service and returns it with a contextualized assemble method
+ * @returns A function that takes a service and returns it with a contextualized buy method
  * @public
  */
 export type Ctx<
-    PLAN extends Pick<UnknownServicePlan, "optionals" | "required">,
-    KNOWN extends Required<ToSpecify<PLAN, Record<never, never>>> = Required<
-        ToSpecify<PLAN, Record<never, never>>
-    >
+    CALLER_PLAN extends Pick<UnknownServicePlan, "optionals" | "required">
 > = <TM extends UnknownTM>(
     tm: TM & (UnknownTM | Spec)
 ) => TM extends UnknownService ?
     Merge<
         TM,
         {
-            _known: KNOWN
-            _toSpecify: Omit<TM["_toSpecify"], keyof KNOWN> & Partial<KNOWN>
-            _deps: TM["_deps"]
+            _caller: Merge<
+                ServiceSupply<UnknownService>,
+                { market: MarketPlan<CALLER_PLAN> }
+            >
+            _toSpecify: Omit<TM["_toSpecify"], keyof ToSpecify<CALLER_PLAN>> &
+                Partial<ToSpecify<CALLER_PLAN>>
         }
     >
 :   TM & Spec // simply returns the service itself if it's a request service (noop)

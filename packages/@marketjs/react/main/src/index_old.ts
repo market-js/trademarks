@@ -1,11 +1,11 @@
 import { useLayoutEffect, useState, useSyncExternalStore } from "react"
-import type { UnknownAppService, Supply, Service } from "typectx"
+import type { UnknownService, Supply, UnknownTM } from "@marketjs/trademarks"
 
 export function useDeps<INIT_DEPS extends Record<string, unknown>>(
     initDeps: INIT_DEPS
 ) {
     // useSyncExternalStore subscribes to store updates.
-    // Combined with the two-phase update in useAssembleComponent (silent set + deferred trigger),
+    // Combined with the two-phase update in useBuy (silent set + deferred trigger),
     // all components get single render pass regardless of memoization.
     if (!store.has(initDeps)) {
         store.set(initDeps, initDeps)
@@ -18,32 +18,32 @@ export function useDeps<INIT_DEPS extends Record<string, unknown>>(
     return deps ?? initDeps
 }
 
-export function useAssembleComponent<SERVICE extends UnknownAppService>(
+export function useBuy<SERVICE extends UnknownService>(
     service: SERVICE,
-    supplied: SERVICE["_toSupply"]
+    supplied: SERVICE["_toSpecify"]
 ) {
     // First render captures the initial assembly.
     // Child components won't be in `components` until they've mounted and
     // initialized their store.
-    const [first] = useState(() => service.assemble(supplied))
+    const [first] = useState(() => service.buy(supplied))
 
-    function isAppSupply(
-        supply: Supply<Service>
-    ): supply is Supply<UnknownAppService> {
-        return "_app" in supply.service && supply.service._app === true
+    function isServiceSupply(
+        supply: Supply<UnknownTM>
+    ): supply is Supply<UnknownService> {
+        return "_service" in supply.tm && supply.tm._service === true
     }
 
-    const components = Object.entries(first.supplies).reduce(
+    const components = Object.entries(first.market).reduce(
         (acc, [key, supply]) => {
-            if (!isAppSupply(supply)) return acc
+            if (!isServiceSupply(supply)) return acc
             if (store.has(supply.deps)) return { ...acc, [key]: supply }
             return acc
         },
         store.has(first.deps) ?
             ({
-                [first.service.name]: first
-            } as Record<string, Supply<UnknownAppService>>)
-        :   ({} as Record<string, Supply<UnknownAppService>>)
+                [first.tm.name]: first
+            } as Record<string, Supply<UnknownService>>)
+        :   ({} as Record<string, Supply<UnknownService>>)
         // Assertion necessary because intersection of mapped types do not work well with wide types
     )
 
@@ -51,10 +51,7 @@ export function useAssembleComponent<SERVICE extends UnknownAppService>(
         .map(([key, component]) => {
             if (
                 // This is not the team! Team is transitive, this is just the direct dependencies!
-                ![
-                    ...component.service._services,
-                    ...component.service._optionals
-                ].some(
+                ![...component.tm._required, ...component.tm._optionals].some(
                     (service) =>
                         service.name in supplied &&
                         supplied[service.name] !==
@@ -69,7 +66,7 @@ export function useAssembleComponent<SERVICE extends UnknownAppService>(
                 // We need ctx, because supplied here is not necessarily the same
                 // as supplied in the useState() call. This is not necessarily the first render, so supplies here
                 // may lack the ones provided in first render.
-                first._ctx(component.service).assemble({
+                first._ctx(component.tm).buy({
                     ...supplied,
                     ...components
                 }).deps
@@ -94,8 +91,6 @@ export function useAssembleComponent<SERVICE extends UnknownAppService>(
     // which useInit$ reads via useSyncExternalStore.
     return first
 }
-
-export const useAssembleHook = useAssembleComponent
 
 const store = {
     set(

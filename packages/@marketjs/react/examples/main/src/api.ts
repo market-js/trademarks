@@ -1,7 +1,7 @@
 import { queryClient } from "@/query"
-import { service, sleep } from "typectx"
+import { tm, sleep } from "@marketjs/trademarks"
+import { createContext } from "react"
 
-// Simple wireframe types with minimal IDs
 export interface User {
     id: string
 }
@@ -20,7 +20,6 @@ export interface Reply {
     commentId: string
 }
 
-// Mock data with simple IDs
 export const mockUsers = [
     { id: "userA" },
     { id: "userB" },
@@ -52,7 +51,6 @@ export const mockReplies = [
     { id: "replyC1b", commentId: "commentC1" }
 ] as const
 
-// Simulates an api that offers populated query results
 const populatedPosts = mockPosts.map((post) => {
     const comments = mockComments
         .filter((comment) => comment.postId === post.id)
@@ -71,35 +69,37 @@ const populatedPosts = mockPosts.map((post) => {
     }
 })
 
-// React Query hooks
-
-export const $userQuery = service("userQuery").app({
-    factory: () => (id: string) => {
-        return {
-            queryKey: ["user", id],
-            queryFn: async () => {
-                await sleep(1000)
-                const user = mockUsers.find((user) => user.id === id)
-                if (!user) {
-                    throw new Error(`User with id ${id} not found`)
-                }
-                return user
+function userQueryFactory(id: string) {
+    return {
+        queryKey: ["user", id],
+        queryFn: async () => {
+            await sleep(1000)
+            const user = mockUsers.find((user) => user.id === id)
+            if (!user) {
+                throw new Error(`User with id ${id} not found`)
             }
+            return user
         }
     }
+}
+
+export const $userQuery = tm("userQuery").service({
+    context: createContext(userQueryFactory),
+    factory: () => userQueryFactory
 })
 
-export const $usersQuery = service("usersQuery").app({
-    services: [$userQuery],
-    factory: () => {
-        return {
-            queryKey: ["users"],
-            queryFn: async () => {
-                await sleep(1000)
-                return mockUsers
-            }
-        }
-    },
+const usersQuery = {
+    queryKey: ["users"],
+    queryFn: async () => {
+        await sleep(1000)
+        return mockUsers
+    }
+}
+
+export const $usersQuery = tm("usersQuery").service({
+    required: [$userQuery],
+    context: createContext(usersQuery),
+    factory: () => usersQuery,
     warmup: async (query, { userQuery }) => {
         const users = await queryClient.fetchQuery(query)
         for (const user of users) {
@@ -108,45 +108,48 @@ export const $usersQuery = service("usersQuery").app({
     }
 })
 
-export const $repliesQuery = service("repliesQuery").app({
-    factory: () => (commentId: string) => {
-        return {
-            queryKey: ["replies", commentId],
-            queryFn: async () => {
-                await sleep(1000)
-                return mockReplies.filter(
-                    (reply) => reply.commentId === commentId
-                )
-            }
+function repliesQueryFactory(commentId: string) {
+    return {
+        queryKey: ["replies", commentId],
+        queryFn: async () => {
+            await sleep(1000)
+            return mockReplies.filter((reply) => reply.commentId === commentId)
         }
     }
+}
+
+export const $repliesQuery = tm("repliesQuery").service({
+    context: createContext(repliesQueryFactory),
+    factory: () => repliesQueryFactory
 })
 
-export const $commentsQuery = service("commentsQuery").app({
-    factory: () => (postId: string) => {
-        return {
-            queryKey: ["comments", postId],
-            queryFn: async () => {
-                await sleep(1000)
-                return mockComments.filter(
-                    (comment) => comment.postId === postId
-                )
-            }
+function commentsQueryFactory(postId: string) {
+    return {
+        queryKey: ["comments", postId],
+        queryFn: async () => {
+            await sleep(1000)
+            return mockComments.filter((comment) => comment.postId === postId)
         }
     }
+}
+
+export const $commentsQuery = tm("commentsQuery").service({
+    context: createContext(commentsQueryFactory),
+    factory: () => commentsQueryFactory
 })
 
-export const $postsQuery = service("postsQuery").app({
-    services: [$commentsQuery, $repliesQuery],
-    factory: () => {
-        return {
-            queryKey: ["posts"],
-            queryFn: async () => {
-                await sleep(1000)
-                return populatedPosts
-            }
-        }
-    },
+const postsQuery = {
+    queryKey: ["posts"],
+    queryFn: async () => {
+        await sleep(1000)
+        return populatedPosts
+    }
+}
+
+export const $postsQuery = tm("postsQuery").service({
+    required: [$commentsQuery, $repliesQuery],
+    context: createContext(postsQuery),
+    factory: () => postsQuery,
     warmup: async (query, { commentsQuery, repliesQuery }) => {
         const posts = await queryClient.fetchQuery(query)
         for (const post of posts) {

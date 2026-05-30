@@ -5,18 +5,21 @@ import { $App } from "@/components/app"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { queryClient } from "@/query"
 import { $postsQuery, $usersQuery } from "@/api"
-import { index } from "typectx"
+import { Provide } from "@marketjs/react"
 import { req } from "@/req"
 
-queryClient.prefetchQuery($usersQuery.assemble({}).unpack())
-queryClient.prefetchQuery($postsQuery.assemble({}).unpack())
+queryClient.prefetchQuery($usersQuery.buy({}).unpack())
+queryClient.prefetchQuery($postsQuery.buy({}).unpack())
 
 const root = createRoot(document.getElementById("root") as HTMLElement)
-const App = $App.assemble(index(req.$defaultUser.pack("userA"))).unpack()
 root.render(
     <StrictMode>
         <QueryClientProvider client={queryClient}>
-            <App />
+            <Provide
+                supply={$App.buy({ defaultUser: req.$defaultUser.of("userA") })}
+            >
+                {(App) => <App />}
+            </Provide>
         </QueryClientProvider>
     </StrictMode>
 )

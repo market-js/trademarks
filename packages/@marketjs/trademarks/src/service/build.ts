@@ -1,7 +1,12 @@
 import type { Ctx, UnknownServicePlan } from "#types/internal"
-import type { UnknownTM, Supply, UnknownService } from "#types/public"
-import type { SuppliesRecord, ToSpecify } from "#types/records"
-import { isService, once } from "#utils"
+import type {
+    UnknownTM,
+    Supply,
+    UnknownService,
+    ServiceSupply
+} from "#types/public"
+import type { MarketPlan, SuppliesRecord } from "#types/records"
+import { isService, once, type Merge } from "#utils"
 
 function createResolver(market: SuppliesRecord) {
     return once(() => {
@@ -21,14 +26,15 @@ function createResolver(market: SuppliesRecord) {
 }
 
 export function Ctx<
+    SUPPLY extends Merge<
+        ServiceSupply<UnknownService>,
+        { market: MarketPlan<PLAN> }
+    >,
     PLAN extends Pick<UnknownServicePlan, "required" | "optionals">
->(
-    plan: PLAN,
-    resolved: Required<ToSpecify<PLAN, Record<never, never>>>
-): Ctx<PLAN> {
+>(callerSupply: SUPPLY, callerPlan: PLAN): Ctx<PLAN> {
     return <TM extends UnknownTM>(tm: TM): any => {
         const actual =
-            plan.required.find((member) => member.name === tm.name) ?? tm
+            callerPlan.required.find((member) => member.name === tm.name) ?? tm
 
         if (!isService(actual)) {
             return actual
@@ -36,7 +42,7 @@ export function Ctx<
 
         return {
             ...actual,
-            _known: { ...actual._known, ...resolved }
+            _caller: callerSupply
         }
     }
 }
@@ -84,12 +90,8 @@ export function _build<THIS extends UnknownService>(
         }
     )
 
-    const ctx = Ctx(
-        { required: this._required, optionals: this._optionals },
-        resolved
-    )
-
     const supply = {
+        name: this.name,
         unpack: once(() => {
             this._required.forEach((tm) => {
                 if (!(tm.name in deps)) {
@@ -97,7 +99,13 @@ export function _build<THIS extends UnknownService>(
                     throw new Error(`Dependency ${tm.name} is not available`)
                 }
             })
-            const value = this._factory(deps, ctx)
+            const value = this._factory(
+                deps,
+                Ctx(supply, {
+                    required: this._required,
+                    optionals: this._optionals
+                })
+            )
             if (this._warmup) {
                 this._warmup(value, deps)
             }
@@ -106,7 +114,13 @@ export function _build<THIS extends UnknownService>(
         deps,
         market: resolved,
         tm: this,
-        _ctx: ctx,
+        _ctx<TM extends UnknownTM>(tm: TM) {
+            return Ctx(supply, {
+                required: this.tm._required,
+                optionals: this.tm._optionals
+            })(tm)
+        },
+        _packed: false as const,
         _fromFactory: true as const
     }
 

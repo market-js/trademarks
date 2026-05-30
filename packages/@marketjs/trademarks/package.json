@@ -38,6 +38,7 @@
         "@marketjs/config.typescript": "workspace:*",
         "vitest": "^4.0.10",
         "@vitest/coverage-v8": "^4.0.10",
+        "vite": "^8.0.0",
         "memoize": "^10.1.0",
         "typescript": "^6.0.2",
         "tsup": "^8.5.1",

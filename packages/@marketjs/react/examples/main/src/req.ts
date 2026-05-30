@@ -1,11 +1,21 @@
 import type { Post, User } from "@/api"
-import { service } from "typectx"
+import { tm } from "@marketjs/trademarks"
+import { createContext } from "react"
+
+export type Session = [User | undefined, (user: User | undefined) => void]
+
+const noop = () => {
+    /* empty */
+}
 
 export const req = {
-    $defaultUser: service("defaultUser").request<string>(),
-    $session:
-        service("session").request<
-            [User | undefined, (user: User | undefined) => void]
-        >(),
-    $post: service("post").request<Post>()
+    $defaultUser: tm("defaultUser").spec<string>({
+        context: createContext<string>("userA")
+    }),
+    $session: tm("session").spec<Session>({
+        context: createContext<Session>([undefined, noop])
+    }),
+    $post: tm("post").spec<Post | undefined>({
+        context: createContext<Post | undefined>(undefined)
+    })
 }

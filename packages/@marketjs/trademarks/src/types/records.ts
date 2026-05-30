@@ -6,7 +6,7 @@ import type {
     Service,
     UnknownService
 } from "#types/public"
-import type { Merge, UnionToIntersection } from "#utils"
+import type { UnionToIntersection } from "#utils"
 
 export type MaybeFn<A extends any[], R> = R | ((...args: A) => R)
 /**
@@ -56,7 +56,7 @@ type ToSpecifyBase<
                 OPTIONAL["name"],
                 OPTIONAL["_type"],
                 OPTIONAL["_optionalKeys"],
-                OPTIONAL["_known"],
+                OPTIONAL["_caller"],
                 Partial<ResolvedRecord<UnknownTM>>,
                 OPTIONAL["_hired"],
                 OPTIONAL["_mock"]
@@ -83,26 +83,33 @@ type FindDepFirstAppearanceInTMTuple<
 export type ToSpecify<
     PLAN extends Pick<UnknownServicePlan, "optionals"> & {
         required: UnknownTM[]
-    },
-    KNOWN extends ResolvedRecord<UnknownTM>
+    }
 > =
     any[] extends PLAN["required"] ? any
-    :   Merge<
-            ToSpecifyBase<PLAN> & {
-                [NAME in keyof UnionToIntersection<
-                    Extract<
-                        PLAN["required"][number],
-                        UnknownService
-                    >["_toSpecify"]
-                > as NAME extends keyof ToSpecifyBase<PLAN> ? never
-                :   NAME]: FindDepFirstAppearanceInTMTuple<
-                    PLAN["required"],
-                    "_toSpecify",
-                    NAME
-                >
-            },
-            Partial<KNOWN>
-        >
+    :   ToSpecifyBase<PLAN> & {
+            [NAME in keyof UnionToIntersection<
+                Extract<PLAN["required"][number], UnknownService>["_toSpecify"]
+            > as NAME extends keyof ToSpecifyBase<PLAN> ? never
+            :   NAME]: FindDepFirstAppearanceInTMTuple<
+                PLAN["required"],
+                "_toSpecify",
+                NAME
+            >
+        }
+
+export type Market<SERVICE extends UnknownService> = {
+    [NAME in keyof SERVICE["_toSpecify"]]-?: NonNullable<
+        SERVICE["_toSpecify"][NAME]
+    >
+}
+
+export type MarketPlan<
+    PLAN extends Pick<UnknownServicePlan, "optionals"> & {
+        required: UnknownTM[]
+    }
+> = {
+    [NAME in keyof ToSpecify<PLAN>]-?: NonNullable<ToSpecify<PLAN>[NAME]>
+}
 
 type DepsBase<
     PLAN extends Pick<UnknownServicePlan, "optionals"> & {

@@ -1,4 +1,4 @@
-import type { PartialServicePlan } from "#types/internal"
+import type { PartialServicePlan, UnknownServicePlan } from "#types/internal"
 import { assertServices } from "#validation"
 import { buy, provision } from "#service/buy"
 import { _build } from "#service/build"
@@ -11,7 +11,14 @@ export function main<
     NAME extends string,
     TYPE,
     REQUIRED extends OriginalTM[] = [],
-    OPTIONALS extends Spec[] = []
+    OPTIONALS extends Spec[] = [],
+    TO_SPECIFY extends ToSpecify<{
+        required: REQUIRED
+        optionals: OPTIONALS
+    }> = ToSpecify<{
+        required: REQUIRED
+        optionals: OPTIONALS
+    }>
 >(
     name: NAME,
     plan: PartialServicePlan<TYPE, REQUIRED, OPTIONALS>
@@ -20,14 +27,8 @@ export function main<
         NAME,
         TYPE,
         OPTIONALS[number]["name"],
-        Record<never, never>,
-        ToSpecify<
-            {
-                required: REQUIRED
-                optionals: OPTIONALS
-            },
-            Record<never, never>
-        >,
+        undefined,
+        TO_SPECIFY,
         [],
         boolean
     >,
@@ -37,21 +38,15 @@ export function main<
 
     const _team = team(name, plan.required ?? [], plan.optionals ?? [])
 
-    const _toSpecify = null as unknown as ToSpecify<
-        {
-            required: REQUIRED
-            optionals: OPTIONALS
-        },
-        Record<never, never>
-    >
+    const _toSpecify = null as unknown as TO_SPECIFY
 
     const _deps = null as unknown as SupplyDeps<
-        typeof _toSpecify,
+        TO_SPECIFY,
         OPTIONALS[number]["name"]
     >
 
     return {
-        ...tm(name).spec<TYPE>(),
+        ...tm(name).spec<TYPE>({ context: plan.context }),
         buy,
         provision: provision,
         _factory: plan.factory,
@@ -60,11 +55,11 @@ export function main<
         _optionals: plan.optionals ?? [],
         _team,
         _hired: [] as [],
-        _known: {},
         _warmup: plan.warmup,
         _spec: false as const,
         _service: true as const,
         _type: null as unknown as TYPE,
+        _caller: undefined,
         _optionalKeys: null as unknown as OPTIONALS[number]["name"],
         _toSpecify,
         _deps,

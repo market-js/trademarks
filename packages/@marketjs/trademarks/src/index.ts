@@ -4,7 +4,7 @@ import { Mock } from "#service/mock"
 import { type PartialServicePlan } from "#types/internal"
 import type { ToSpecify } from "#types/records"
 import type { ServiceGuard } from "#types/guards"
-import { assertName, assertServicePlan } from "#validation"
+import { assertName, assertServicePlan, assertSpecOptions } from "#validation"
 import type {
     OriginalTM,
     Service,
@@ -15,7 +15,9 @@ import type {
 
 export function tm<NAME extends string>(name: NAME) {
     return {
-        spec<TYPE = any>(): Spec<NAME, TYPE> {
+        spec<TYPE = any>(opts?: { context?: unknown }): Spec<NAME, TYPE> {
+            assertName(name)
+            assertSpecOptions(name, opts)
             return {
                 name,
                 of<THIS extends UnknownTM, VALUE extends TYPE>(
@@ -25,7 +27,7 @@ export function tm<NAME extends string>(name: NAME) {
                     return {
                         unpack: () => value,
                         deps: {} as never,
-                        supplies: {} as never,
+                        market: {} as never,
                         tm: this,
                         _ctx: (() => null) as never,
                         _fromFactory: false as const
@@ -33,7 +35,8 @@ export function tm<NAME extends string>(name: NAME) {
                 },
                 _type: null as unknown as TYPE,
                 _spec: true as const,
-                _mock: false as const
+                _mock: false as const,
+                _context: opts?.context
             }
         },
         /**
@@ -63,14 +66,11 @@ export function tm<NAME extends string>(name: NAME) {
                 NAME,
                 TYPE,
                 OPTIONALS[number]["name"],
-                Record<never, never>,
-                ToSpecify<
-                    {
-                        required: REQUIRED
-                        optionals: OPTIONALS
-                    },
-                    Record<never, never>
-                >,
+                undefined,
+                ToSpecify<{
+                    required: REQUIRED
+                    optionals: OPTIONALS
+                }>,
                 [],
                 false
             >,
@@ -88,14 +88,11 @@ export function tm<NAME extends string>(name: NAME) {
                 NAME,
                 TYPE,
                 OPTIONALS[number]["name"],
-                Record<never, never>,
-                ToSpecify<
-                    {
-                        required: REQUIRED
-                        optionals: OPTIONALS
-                    },
-                    Record<never, never>
-                >,
+                undefined,
+                ToSpecify<{
+                    required: REQUIRED
+                    optionals: OPTIONALS
+                }>,
                 [],
                 false
             >

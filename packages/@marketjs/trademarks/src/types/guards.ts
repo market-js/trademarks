@@ -30,11 +30,16 @@ export type DuplicateDependencyGuard<
  * @public
  */
 
+type CallerProvidedKeys<SERVICE extends UnknownService> =
+    NonNullable<SERVICE["_caller"]> extends { market: infer MARKET } ?
+        keyof MARKET
+    :   never
+
 export type CircularDependencyGuard<SERVICE extends UnknownService> =
     string extends SERVICE["name"] ? SERVICE
     : string extends keyof SERVICE["_toSpecify"] ? SERVICE
     : SERVICE["name"] extends (
-        keyof Omit<SERVICE["_toSpecify"], keyof SERVICE["_known"]>
+        keyof Omit<SERVICE["_toSpecify"], CallerProvidedKeys<SERVICE>>
     ) ?
         CircularDependencyError
     :   SERVICE

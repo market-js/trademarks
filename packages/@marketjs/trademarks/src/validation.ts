@@ -107,6 +107,7 @@ export function assertServicePlan(
         optionals?: unknown
         factory?: unknown
         warmup?: unknown
+        context?: unknown
     }
 ) {
     assertPlainObject(name, plan)
@@ -124,6 +125,22 @@ export function assertServicePlan(
     if (plan.warmup !== undefined) {
         assertFunction(name, plan.warmup)
     }
+
+}
+
+/**
+ * Validates the optional opts object passed to `tm(name).spec(opts)`.
+ * @param name - Spec name, used in error messages
+ * @param opts - The options object to validate, or undefined
+ * @internal
+ * @throws TypeError if opts is not a plain object
+ */
+export function assertSpecOptions(
+    name: string,
+    opts: { context?: unknown } | undefined
+) {
+    if (opts === undefined) return
+    assertPlainObject(name, opts)
 }
 
 export function assertSpec(tm: unknown): asserts tm is Spec {

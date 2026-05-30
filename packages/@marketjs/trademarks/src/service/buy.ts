@@ -17,7 +17,7 @@ export function buy<THIS extends UnknownService>(
     // Stores the known supplies that can be preserved to optimize reassemble
     const preserved: ResolvedRecord<UnknownTM> = {}
 
-    for (const [name, supply] of Object.entries(this._known)) {
+    for (const [name, supply] of Object.entries(this._caller?.market ?? {})) {
         // Do not preserve supplies from newly hired
         // or newly specified
         if (this._hired.some((hname) => hname === name) || name in specified) {
@@ -86,5 +86,11 @@ function warmup(supply: ServiceSupply<UnknownService>) {
 
 export function provision<THIS extends UnknownService>(this: THIS) {
     const supply = buy.call(this, {})
-    return { ...this, _known: { ...supply.market, [this.name]: supply } }
+    return {
+        ...this,
+        _caller: {
+            ...supply,
+            market: { ...supply.market, [this.name]: supply }
+        }
+    }
 }

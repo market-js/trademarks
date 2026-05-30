@@ -31,7 +31,7 @@ export function Hire() {
             THIS["name"],
             THIS["_type"],
             THIS["_optionalKeys"],
-            THIS["_known"],
+            THIS["_caller"],
             Merge<
                 {
                     [SERVICE in HIRED[number] as SERVICE["name"]]?: Supply<SERVICE>
@@ -96,11 +96,14 @@ export function Hire() {
             _team: team(this.name, mergedServices, this._optionals),
             _toSpecify: _toSpecify,
             _deps,
-            _known: {
-                ...this._known,
-                ...hired
-                    .map((service) => service._known)
-                    .reduce((acc, known) => ({ ...acc, ...known }), {})
+            _caller: {
+                ...this._caller,
+                market: {
+                    ...this._caller?.market,
+                    ...hired
+                        .map((service) => service._caller?.market ?? {})
+                        .reduce((acc, known) => ({ ...acc, ...known }), {})
+                }
             },
             _oldToSpecify: _toSpecify,
             _oldDeps: _deps,
@@ -109,7 +112,7 @@ export function Hire() {
             THIS["name"],
             THIS["_type"],
             THIS["_optionalKeys"],
-            THIS["_known"],
+            THIS["_caller"],
             Merge<
                 {
                     [SERVICE in HIRED[number] as SERVICE["name"]]?: Supply<SERVICE>

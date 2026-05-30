@@ -1,10 +1,11 @@
 import type { ServiceGuard } from "#types/guards"
-import type { TM, Ctx, PartialServicePlan } from "#types/internal"
+import type { TM, PartialServicePlan, Ctx } from "#types/internal"
 import type {
+    Market,
     ResolvedRecord,
     SuppliesRecord,
     SupplyDeps,
-    ToSpecify as ToSpecify
+    ToSpecify
 } from "#types/records"
 import type { MergeStringTuples } from "#types/utils"
 import type { Merge } from "#utils"
@@ -20,7 +21,7 @@ export interface Service<
     NAME extends string,
     TYPE,
     OPTIONAL_KEYS extends string,
-    KNOWN extends ResolvedRecord<UnknownTM>,
+    CALLER extends ServiceSupply<UnknownService> | undefined,
     TO_SPECIFY extends Partial<ResolvedRecord<UnknownTM>>,
     HIRED extends string[],
     MOCK extends boolean = boolean
@@ -55,7 +56,7 @@ export interface Service<
             THIS["name"],
             THIS["_type"],
             THIS["_optionalKeys"],
-            THIS["_known"],
+            THIS["_caller"],
             Merge<
                 {
                     [SERVICE in HIRED[number] as SERVICE["name"]]?: Supply<SERVICE>
@@ -82,7 +83,7 @@ export interface Service<
     _spec: false
     _type: TYPE
     _optionalKeys: OPTIONAL_KEYS
-    _known: KNOWN
+    _caller: CALLER
     _toSpecify: TO_SPECIFY
     _deps: SupplyDeps<TO_SPECIFY, OPTIONAL_KEYS>
     _oldToSpecify: TO_SPECIFY
@@ -94,7 +95,7 @@ export interface Service<
     _team: UnknownTM[]
     _hired: HIRED
     /** Factory function that creates the service's value from its dependencies */
-    _factory: (deps: any, ctx: Ctx<any, any>) => any
+    _factory: (deps: any, ctx: any) => any
     /** Optional initialization function called after factory */
     _warmup?: (value: any, deps: any) => void
     _build: <THIS extends UnknownService>(
@@ -113,7 +114,7 @@ export type UnknownService = Service<
     string,
     unknown,
     string,
-    ResolvedRecord<any>,
+    ServiceSupply<UnknownService> | undefined,
     Partial<ResolvedRecord<any>>,
     string[],
     boolean
@@ -129,18 +130,15 @@ export type Mock<
         SERVICE["name"],
         TYPE2,
         OPTIONALS2[number]["name"],
-        Record<never, never>,
-        ToSpecify<
-            {
-                required: REQUIRED2
-                optionals: OPTIONALS2
-            },
-            Record<never, never>
-        >,
+        undefined,
+        ToSpecify<{
+            required: REQUIRED2
+            optionals: OPTIONALS2
+        }>,
         [],
         true
     >,
-    "_mock" | "_oldResolved" | "_oldToSpecify" | "_oldDeps"
+    "_mock" | "_oldToSpecify" | "_oldDeps"
 > & {
     _mock: true
     _oldToSpecify: SERVICE["_toSpecify"]
@@ -160,13 +158,8 @@ export type ServiceSupply<SERVICE extends UnknownService> = {
     name: SERVICE["name"]
     unpack: () => SERVICE["_type"]
     deps: SERVICE["_deps"]
-    market: {
-        [NAME in keyof SERVICE["_toSpecify"]]-?: NonNullable<
-            SERVICE["_toSpecify"][NAME]
-        >
-    }
+    market: Market<SERVICE>
     tm: SERVICE
-    _ctx: Ctx<any>
     _packed: boolean
 }
 

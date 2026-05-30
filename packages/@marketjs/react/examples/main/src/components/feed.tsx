@@ -1,30 +1,29 @@
-import { $postsQuery } from "@/api"
+import { createContext } from "react"
+import { $postsQuery, type Post as PostType } from "@/api"
 import { $Post } from "@/components/post"
 import { useQuery } from "@tanstack/react-query"
-import { useDeps } from "@typectx/react"
-import { useAssertStable } from "@/hooks"
-import { service } from "typectx"
+import { useDeps } from "@marketjs/react"
+import { tm } from "@marketjs/trademarks"
 
-export const $Feed = service("Feed").app({
-    services: [$postsQuery, $Post],
-    factory: (initDeps) =>
-        function Feed() {
-            const { postsQuery, Post } = useDeps(initDeps)
-            const { data: posts } = useQuery(postsQuery)
+function Feed() {
+    const { postsQuery, Post } = useDeps($Feed)
+    const { data: posts } = useQuery(postsQuery)
 
-            const assertStablePost = useAssertStable()
-            if (!posts) {
-                return <div>Loading posts...</div>
-            }
+    if (!posts) {
+        return <div>Loading posts...</div>
+    }
 
-            assertStablePost(Post)
+    return (
+        <div className="space-y-6">
+            {posts.map((post: PostType) => (
+                <Post key={post.id} post={post} />
+            ))}
+        </div>
+    )
+}
 
-            return (
-                <div className="space-y-6">
-                    {posts.map((post) => {
-                        return <Post key={post.id} post={post} />
-                    })}
-                </div>
-            )
-        }
+export const $Feed = tm("Feed").service({
+    required: [$postsQuery, $Post],
+    context: createContext(Feed),
+    factory: () => Feed
 })

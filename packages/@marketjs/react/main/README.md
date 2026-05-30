@@ -1,26 +1,26 @@
-# @typectx/react
+# @marketjs/react
 
-An adapter to use `typectx` with React client components. This library provides hooks to integrate `typectx`'s dependency injection into React applications, offering efficient updates and referential integrity.
+An adapter to use `marketjs` trademarks with React client components. This library provides hooks to integrate trademarks into React applications, offering efficient updates and referential integrity.
 
 The purpose of this library is mainly as a proof-of-concept that dependency injection can be integrated with React. It does not aim to become as stable as React Context yet, but can achieve all that React Context does as efficiently as it does.
 
 ## Features
 
-- **Dependency Injection for React**: Define components as `typectx` app services and inject dependencies (request data or other components).
-- **Referential Integrity**: Components assembled via `useAssembleComponent` maintain referential equality across re-renders, preventing unnecessary React tree updates.
-- **Efficient Updates**: Uses `useSyncExternalStore` and an internal event store to propagate updates only to components that actually depend on changed resources, similar to how React Context works.
+- **Dependency Injection for React**: Define components as services and inject dependencies (request specs or other components).
+- **Referential Integrity**: Components bought via `useBuy` maintain referential equality across re-renders, preventing unnecessary React tree updates.
+- **Efficient Updates**: Uses `useSyncExternalStore` and an internal event store to propagate updates only to components that actually depend on changed specs, similar to how React Context works.
 
 ## Installation
 
 ```bash
-npm install typectx @typectx/react
+npm install typectx @marketjs/react
 ```
 
 ## API
 
 ### `useDeps`
 
-Initializes a connection between a React component or hook with @typectx/react's internal store. Components registered will receive updated supplies when a parent component calls the useAssembleComponent hook. Think of this hook as equivalent to useContext, but giving you access to the whole deps object.
+Initializes a connection between a React component or hook with @marketjs/react's internal store. Components registered will receive updated specs when a parent component calls the useBuy hook. Think of this hook as equivalent to useContext, but giving you access to the whole deps object.
 
 ```typescript
 function MyComponentFactory(initDeps, ctx) {
@@ -32,9 +32,9 @@ function MyComponentFactory(initDeps, ctx) {
 }
 ```
 
-### `useAssembleComponent` (alias `useAssembleHook`)
+### `useBuy`
 
-Assembles a child component (or hook) with specific data. This hook ensures that the assembled component reference (and all its transitive component or hook dependencies) remains stable, even if the supplied pieces of context change (updates are handled internally via the store). So React always renders the same component, but the deps of that component update in a reactive way, preserving all React's optimizations, and preserving other pieces of state, across rerenders.
+Buys a child component (or hook) with specified specs. This hook ensures that the bought component reference (and all its transitive component or hook dependencies) remains stable, even if the provided specs change across rerenders (updates are handled internally via the store). So React always renders the same component, but the deps of that component update in a reactive way, preserving all React's optimizations, and preserving other pieces of state, across rerenders.
 
 Usage:
 
